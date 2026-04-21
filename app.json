@@ -35,4 +35,7 @@
       "package": "com.moto.routes"
     },
     "web": {
-      "favicon":
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
