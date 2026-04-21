@@ -1,5 +1,4 @@
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import type { Route, Checkpoint, Note, Coordinate } from '../models';
 import { DatabaseService } from './DatabaseService';
 
@@ -7,7 +6,7 @@ const createRoute = (name: string, description: string, path: Coordinate[]): Rou
   const now = Date.now();
 
   return {
-    id: uuidv4(),
+    id: Crypto.randomUUID(),
     name,
     description,
     path,
@@ -20,7 +19,7 @@ const createRoute = (name: string, description: string, path: Coordinate[]): Rou
 
 const addCheckpoint = (route: Route, coordinate: Coordinate, label: string): Route => {
   const checkpoint: Checkpoint = {
-    id: uuidv4(),
+    id: Crypto.randomUUID(),
     routeId: route.id,
     coordinate,
     label,
@@ -36,7 +35,7 @@ const addCheckpoint = (route: Route, coordinate: Coordinate, label: string): Rou
 
 const addNote = (route: Route, coordinate: Coordinate, text: string): Route => {
   const note: Note = {
-    id: uuidv4(),
+    id: Crypto.randomUUID(),
     routeId: route.id,
     coordinate,
     text,

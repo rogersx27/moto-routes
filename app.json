@@ -24,7 +24,7 @@
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyByOYWKxNY0M7BtRhN8sf0OAzv5x1L6C50"
         }
       },
       "permissions": [
@@ -35,12 +35,4 @@
       "package": "com.moto.routes"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "f4a45ec5-723b-4f9b-969f-5b5989a4d390"
-      }
-    }
-  }
-}
+      "favicon":
