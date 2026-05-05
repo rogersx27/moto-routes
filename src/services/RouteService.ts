@@ -55,6 +55,12 @@ const appendPathPoint = (route: Route, coordinate: Coordinate): Route => ({
   updatedAt: Date.now(),
 });
 
+const removeLastPathPoint = (route: Route): Route => ({
+  ...route,
+  path: route.path.slice(0, -1),
+  updatedAt: Date.now(),
+});
+
 const saveRoute = (route: Route): void => {
   DatabaseService.saveRoute(route);
 };
@@ -70,6 +76,7 @@ export const RouteService = {
   addCheckpoint,
   addNote,
   appendPathPoint,
+  removeLastPathPoint,
   saveRoute,
   getAllRoutes,
   getRouteById,

@@ -10,7 +10,7 @@ Marca cada tarea con `[x]` al completarla.
 > refactorizar estilos dos veces.
 
 ### 1.1 Sistema de tokens de diseño
-- [ ] Crear `src/theme.ts` con paleta, tipografía y espaciados
+- [x] Crear `src/theme.ts` con paleta, tipografía y espaciados
 
 **Archivos a crear/editar:** `src/theme.ts`
 
@@ -34,7 +34,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 1.2 Safe area en el toolbar del mapa
-- [ ] Corregir que los botones del toolbar no queden bajo la gesture bar de Android
+- [x] Corregir que los botones del toolbar no queden bajo la gesture bar de Android
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 
@@ -58,7 +58,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 1.3 Touch targets mínimos de 44 pt
-- [ ] Aumentar área táctil en botones de texto (Eliminar, Cancelar, Agregar)
+- [x] Aumentar área táctil en botones de texto (Eliminar, Cancelar, Agregar)
 
 **Archivos a editar:** `src/screens/RoutesListScreen.tsx`, `src/screens/MapScreen.tsx`
 
@@ -110,7 +110,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 2.2 Deshacer último punto dibujado
-- [ ] Agregar botón "↩ Deshacer" que elimina el último punto del path
+- [x] Agregar botón "↩ Deshacer" que elimina el último punto del path
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`, `src/services/RouteService.ts`
 
@@ -138,7 +138,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 2.3 Checkpoints y notas disponibles durante tracking GPS
-- [ ] Permitir agregar checkpoints y notas mientras el GPS está grabando
+- [x] Permitir agregar checkpoints y notas mientras el GPS está grabando
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 
@@ -180,7 +180,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 2.4 Renombrar etiqueta del botón GPS y agregar contador de puntos
-- [ ] Mejorar la comunicación del estado de grabación GPS
+- [x] Mejorar la comunicación del estado de grabación GPS
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 
@@ -199,7 +199,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 2.5 Advertencia de cambios sin guardar al salir
-- [ ] Mostrar confirmación si el usuario presiona atrás con una ruta no guardada
+- [x] Mostrar confirmación si el usuario presiona atrás con una ruta no guardada
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 

@@ -13,13 +13,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route } from '../models';
 import { RouteService } from '../services';
+import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutesList'>;
 
 export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
   const [routes, setRoutes] = useState<Route[]>([]);
 
-  // Reload routes every time this screen gains focus
   useFocusEffect(
     useCallback(() => {
       setRoutes(RouteService.getAllRoutes());
@@ -44,6 +44,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('RouteDetail', { routeId: item.id })}
+      accessibilityLabel={`Ruta ${item.name}`}
     >
       <Text style={styles.routeName}>{item.name}</Text>
       <Text style={styles.routeMeta}>
@@ -52,6 +53,8 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.deleteBtn}
         onPress={() => handleDelete(item.id, item.name)}
+        accessibilityLabel={`Eliminar ruta ${item.name}`}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Text style={styles.deleteBtnText}>Eliminar</Text>
       </TouchableOpacity>
@@ -72,6 +75,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('Map', {})}
+        accessibilityLabel="Nueva ruta"
       >
         <Text style={styles.fabText}>+ Nueva ruta</Text>
       </TouchableOpacity>
@@ -80,37 +84,54 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  list: { padding: 16, paddingBottom: 80 },
+  container: { flex: 1, backgroundColor: colors.background },
+  list: { padding: spacing.lg, paddingBottom: 80 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
-  routeName: { fontSize: 18, fontWeight: '600', color: '#1a1a1a' },
-  routeMeta: { fontSize: 13, color: '#666', marginTop: 4 },
-  deleteBtn: { marginTop: 10, alignSelf: 'flex-start' },
-  deleteBtnText: { color: '#e53935', fontSize: 13 },
+  routeName: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+  },
+  routeMeta: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  deleteBtn: {
+    marginTop: spacing.md,
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  deleteBtnText: { color: colors.danger, fontSize: typography.size.sm },
   emptyText: {
     textAlign: 'center',
     marginTop: 60,
-    color: '#999',
-    fontSize: 16,
+    color: colors.textMuted,
+    fontSize: typography.size.md,
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: '#FF6B00',
+    bottom: spacing.xl,
+    right: spacing.xl,
+    backgroundColor: colors.primary,
     borderRadius: 28,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 14,
     elevation: 4,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  fabText: {
+    color: colors.surface,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.md,
+  },
 });

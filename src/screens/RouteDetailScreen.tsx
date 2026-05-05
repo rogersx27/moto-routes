@@ -12,6 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route } from '../models';
 import { RouteService } from '../services';
+import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RouteDetail'>;
 
@@ -73,6 +74,7 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
       <TouchableOpacity
         style={styles.editBtn}
         onPress={() => navigation.navigate('Map', { routeId: route.id })}
+        accessibilityLabel="Editar ruta en el mapa"
       >
         <Text style={styles.editBtnText}>Editar en el mapa</Text>
       </TouchableOpacity>
@@ -81,34 +83,46 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 20, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.xl, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  notFound: { color: '#999', fontSize: 16 },
-  title: { fontSize: 26, fontWeight: '700', color: '#1a1a1a' },
-  date: { fontSize: 13, color: '#888', marginTop: 4 },
-  description: { fontSize: 15, color: '#444', marginTop: 8 },
+  notFound: { color: colors.textMuted, fontSize: typography.size.md },
+  title: {
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
+    color: colors.textPrimary,
+  },
+  date: { fontSize: typography.size.sm, color: '#888', marginTop: spacing.xs },
+  description: {
+    fontSize: typography.size.base,
+    color: '#444',
+    marginTop: spacing.sm,
+  },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
     color: '#333',
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
   },
   listItem: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  itemLabel: { fontSize: 15, color: '#1a1a1a' },
-  itemCoord: { fontSize: 11, color: '#aaa', marginTop: 2 },
+  itemLabel: { fontSize: typography.size.base, color: colors.textPrimary },
+  itemCoord: { fontSize: typography.size.xs, color: '#aaa', marginTop: 2 },
   editBtn: {
-    marginTop: 32,
-    backgroundColor: '#FF6B00',
-    borderRadius: 14,
+    marginTop: spacing.xxl,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  editBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  editBtnText: {
+    color: colors.surface,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.md,
+  },
 });
