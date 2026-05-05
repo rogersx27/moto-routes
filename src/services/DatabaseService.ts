@@ -9,68 +9,69 @@ let db: SQLite.SQLiteDatabase | null = null;
 const getDb = (): SQLite.SQLiteDatabase => {
   if (!db) {
     db = SQLite.openDatabaseSync(DB_NAME);
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS routes (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        path TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS checkpoints (
+        id TEXT PRIMARY KEY,
+        route_id TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        label TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        route_id TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        text TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
+      );
+    `);
   }
   return db;
 };
 
 const initSchema = (): void => {
-  const database = getDb();
-
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS routes (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      path TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS checkpoints (
-      id TEXT PRIMARY KEY,
-      route_id TEXT NOT NULL,
-      latitude REAL NOT NULL,
-      longitude REAL NOT NULL,
-      label TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS notes (
-      id TEXT PRIMARY KEY,
-      route_id TEXT NOT NULL,
-      latitude REAL NOT NULL,
-      longitude REAL NOT NULL,
-      text TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
-    );
-  `);
+  getDb();
 };
 
 const saveRoute = (route: Route): void => {
   const database = getDb();
 
-  database.runSync(
-    `INSERT OR REPLACE INTO routes (id, name, description, path, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [route.id, route.name, route.description, JSON.stringify(route.path), route.createdAt, route.updatedAt]
-  );
-
-  route.checkpoints.forEach((cp) => {
+  database.withTransactionSync(() => {
     database.runSync(
-      `INSERT OR REPLACE INTO checkpoints (id, route_id, latitude, longitude, label, created_at)
+      `INSERT OR REPLACE INTO routes (id, name, description, path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [cp.id, cp.routeId, cp.coordinate.latitude, cp.coordinate.longitude, cp.label, cp.createdAt]
+      [route.id, route.name, route.description, JSON.stringify(route.path), route.createdAt, route.updatedAt]
     );
-  });
 
-  route.notes.forEach((note) => {
-    database.runSync(
-      `INSERT OR REPLACE INTO notes (id, route_id, latitude, longitude, text, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [note.id, note.routeId, note.coordinate.latitude, note.coordinate.longitude, note.text, note.createdAt]
-    );
+    route.checkpoints.forEach((cp) => {
+      database.runSync(
+        `INSERT OR REPLACE INTO checkpoints (id, route_id, latitude, longitude, label, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [cp.id, cp.routeId, cp.coordinate.latitude, cp.coordinate.longitude, cp.label, cp.createdAt]
+      );
+    });
+
+    route.notes.forEach((note) => {
+      database.runSync(
+        `INSERT OR REPLACE INTO notes (id, route_id, latitude, longitude, text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [note.id, note.routeId, note.coordinate.latitude, note.coordinate.longitude, note.text, note.createdAt]
+      );
+    });
   });
 };
 
@@ -90,11 +91,18 @@ const fetchAllRoutes = (): Route[] => {
     const checkpoints = fetchCheckpointsByRouteId(row.id);
     const notes = fetchNotesByRouteId(row.id);
 
+    let path: { latitude: number; longitude: number }[];
+    try {
+      path = JSON.parse(row.path);
+    } catch {
+      path = [];
+    }
+
     return {
       id: row.id,
       name: row.name,
       description: row.description,
-      path: JSON.parse(row.path),
+      path,
       checkpoints,
       notes,
       createdAt: row.created_at,
@@ -117,11 +125,18 @@ const fetchRouteById = (id: string): Route | null => {
 
   if (!row) return null;
 
+  let path: { latitude: number; longitude: number }[];
+  try {
+    path = JSON.parse(row.path);
+  } catch {
+    path = [];
+  }
+
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    path: JSON.parse(row.path),
+    path,
     checkpoints: fetchCheckpointsByRouteId(row.id),
     notes: fetchNotesByRouteId(row.id),
     createdAt: row.created_at,

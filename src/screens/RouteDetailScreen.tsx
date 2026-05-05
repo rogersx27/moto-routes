@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -17,10 +18,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RouteDetail'>;
 export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParams }) => {
   const [route, setRoute] = useState<Route | null>(null);
 
-  useEffect(() => {
-    const loaded = RouteService.getRouteById(navParams.params.routeId);
-    setRoute(loaded);
-  }, [navParams.params.routeId]);
+  useFocusEffect(
+    useCallback(() => {
+      const loaded = RouteService.getRouteById(navParams.params.routeId);
+      setRoute(loaded);
+    }, [navParams.params.routeId])
+  );
 
   if (!route) {
     return (

@@ -28,8 +28,8 @@ const getCurrentPosition = async (): Promise<Coordinate | null> => {
 };
 
 const startTracking = async (onUpdate: LocationCallback): Promise<boolean> => {
-  const granted = await requestPermissions();
-  if (!granted) return false;
+  const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+  if (status !== 'granted') return false;
 
   watchSubscription = await ExpoLocation.watchPositionAsync(
     {

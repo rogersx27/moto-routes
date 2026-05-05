@@ -6,7 +6,6 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  Modal,
 } from 'react-native';
 import MapView, { MapPressEvent } from 'react-native-maps';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -14,11 +13,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route, Coordinate } from '../models';
 import { RouteService, LocationService } from '../services';
-import { RouteMap } from '../components/RouteMap';
+import { AppModal, RouteMap } from '../components';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Map'>;
 
-type DrawingMode = 'idle' | 'drawing' | 'tracking' | 'checkpoint' | 'note';
+type DrawingMode = 'idle' | 'drawing' | 'tracking' | 'checkpoint' | 'note' | 'newRoute';
 
 export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => {
   const [currentRoute, setCurrentRoute] = useState<Route | null>(null);
@@ -37,6 +36,13 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
       if (loaded) setCurrentRoute(loaded);
     }
   }, [navParams.params?.routeId]);
+
+  // Stop tracking when screen unmounts to avoid GPS leak
+  useEffect(() => {
+    return () => {
+      LocationService.stopTracking();
+    };
+  }, []);
 
   // Center map on user location on mount
   useEffect(() => {
@@ -71,7 +77,17 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   );
 
   const handleModalConfirm = useCallback(() => {
-    if (!pendingCoord || !currentRoute || !modalInput.trim()) return;
+    if (!modalInput.trim()) return;
+
+    if (mode === 'newRoute') {
+      const created = RouteService.createRoute(modalInput.trim(), '', []);
+      setCurrentRoute(created);
+      setModalVisible(false);
+      setMode('drawing');
+      return;
+    }
+
+    if (!pendingCoord || !currentRoute) return;
 
     const updated =
       mode === 'checkpoint'
@@ -104,17 +120,9 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   }, []);
 
   const handleNewRoute = useCallback(() => {
-    Alert.prompt(
-      'Nueva ruta',
-      'Nombre de la ruta',
-      (name) => {
-        if (!name?.trim()) return;
-        const created = RouteService.createRoute(name.trim(), '', []);
-        setCurrentRoute(created);
-        setMode('drawing');
-      },
-      'plain-text'
-    );
+    setModalInput('');
+    setModalVisible(true);
+    setMode('newRoute');
   }, []);
 
   const handleSave = useCallback(() => {
@@ -183,18 +191,28 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
         )}
       </View>
 
-      {/* Modal for checkpoint / note input */}
-      <Modal visible={modalVisible} transparent animationType="slide">
+      {/* Modal for checkpoint / note / new route input */}
+      <AppModal visible={modalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>
-              {mode === 'checkpoint' ? 'Nombre del checkpoint' : 'Texto de la nota'}
+              {mode === 'newRoute'
+                ? 'Nombre de la ruta'
+                : mode === 'checkpoint'
+                ? 'Nombre del checkpoint'
+                : 'Texto de la nota'}
             </Text>
             <TextInput
               style={styles.modalInput}
               value={modalInput}
               onChangeText={setModalInput}
-              placeholder={mode === 'checkpoint' ? 'Ej: Gasolinera' : 'Ej: Vista increíble aquí'}
+              placeholder={
+                mode === 'newRoute'
+                  ? 'Ej: Ruta de montaña'
+                  : mode === 'checkpoint'
+                  ? 'Ej: Gasolinera'
+                  : 'Ej: Vista increíble aquí'
+              }
               autoFocus
             />
             <View style={styles.modalActions}>
@@ -212,7 +230,7 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
             </View>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };
