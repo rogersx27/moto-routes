@@ -271,7 +271,7 @@ Marca cada tarea con `[x]` al completarla.
 ## Fase 3 — RoutesListScreen: lista y cards
 
 ### 3.1 Swipe-to-delete en lugar de botón "Eliminar"
-- [ ] Eliminar el botón de texto dentro de la card y reemplazar por gesto de deslizar
+- [x] Eliminar el botón de texto dentro de la card y reemplazar por gesto de deslizar
 
 **Archivos a editar:** `src/screens/RoutesListScreen.tsx`
 
@@ -297,7 +297,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 3.2 Mostrar distancia y fecha en las cards
-- [ ] Calcular distancia total de la ruta y mostrarla junto a la fecha en la card
+- [x] Calcular distancia total de la ruta y mostrarla junto a la fecha en la card
 
 **Archivos a crear/editar:** `src/services/RouteService.ts`, `src/screens/RoutesListScreen.tsx`
 
@@ -342,7 +342,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 3.3 Empty state con CTA
-- [ ] Mejorar el estado vacío de la lista para guiar al usuario
+- [x] Mejorar el estado vacío de la lista para guiar al usuario
 
 **Archivos a editar:** `src/screens/RoutesListScreen.tsx`
 
@@ -366,7 +366,7 @@ Marca cada tarea con `[x]` al completarla.
 ## Fase 4 — RouteDetailScreen: información y acciones
 
 ### 4.1 Mapa embebido en el detalle de ruta
-- [ ] Mostrar un MapView no-interactivo con el polyline de la ruta en la pantalla de detalle
+- [x] Mostrar un MapView no-interactivo con el polyline de la ruta en la pantalla de detalle
 
 **Archivos a editar:** `src/screens/RouteDetailScreen.tsx`
 
@@ -408,7 +408,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 4.2 Eliminar coordenadas crudas y mostrar distancia
-- [ ] Reemplazar lat/lon en checkpoints y notas por la distancia calculada
+- [x] Reemplazar lat/lon en checkpoints y notas por la distancia calculada
 
 **Archivos a editar:** `src/screens/RouteDetailScreen.tsx`, reutiliza `RouteService.calculateDistance`
 
@@ -427,7 +427,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 4.3 Ocultar secciones vacías de checkpoints y notas
-- [ ] No renderizar la sección si no hay elementos
+- [x] No renderizar la sección si no hay elementos
 
 **Archivos a editar:** `src/screens/RouteDetailScreen.tsx`
 
@@ -445,7 +445,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 4.4 Renombrar ruta desde el detalle
-- [ ] Permitir al usuario editar el nombre de la ruta
+- [x] Permitir al usuario editar el nombre de la ruta
 
 **Archivos a editar:** `src/screens/RouteDetailScreen.tsx`, `src/services/RouteService.ts`,
 `src/services/DatabaseService.ts`
@@ -486,7 +486,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 4.5 Eliminar ruta desde el detalle
-- [ ] Agregar opción de eliminar desde RouteDetailScreen
+- [x] Agregar opción de eliminar desde RouteDetailScreen
 
 **Archivos a editar:** `src/screens/RouteDetailScreen.tsx`
 

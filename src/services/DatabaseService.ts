@@ -191,10 +191,19 @@ const deleteRoute = (id: string): void => {
   database.runSync('DELETE FROM routes WHERE id = ?', [id]);
 };
 
+const renameRoute = (id: string, name: string): void => {
+  const database = getDb();
+  database.runSync(
+    'UPDATE routes SET name = ?, updated_at = ? WHERE id = ?',
+    [name, Date.now(), id]
+  );
+};
+
 export const DatabaseService = {
   initSchema,
   saveRoute,
   fetchAllRoutes,
   fetchRouteById,
   deleteRoute,
+  renameRoute,
 };

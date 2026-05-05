@@ -61,6 +61,26 @@ const removeLastPathPoint = (route: Route): Route => ({
   updatedAt: Date.now(),
 });
 
+const EARTH_RADIUS_KM = 6371;
+const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+const calculateDistance = (path: Coordinate[]): number => {
+  let total = 0;
+  for (let i = 1; i < path.length; i++) {
+    const prev = path[i - 1];
+    const curr = path[i];
+    const dLat = toRad(curr.latitude - prev.latitude);
+    const dLon = toRad(curr.longitude - prev.longitude);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(prev.latitude)) *
+        Math.cos(toRad(curr.latitude)) *
+        Math.sin(dLon / 2) ** 2;
+    total += EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  return total;
+};
+
 const saveRoute = (route: Route): void => {
   DatabaseService.saveRoute(route);
 };
@@ -71,14 +91,18 @@ const getRouteById = (id: string): Route | null => DatabaseService.fetchRouteByI
 
 const deleteRoute = (id: string): void => DatabaseService.deleteRoute(id);
 
+const renameRoute = (id: string, name: string): void => DatabaseService.renameRoute(id, name);
+
 export const RouteService = {
   createRoute,
   addCheckpoint,
   addNote,
   appendPathPoint,
   removeLastPathPoint,
+  calculateDistance,
   saveRoute,
   getAllRoutes,
   getRouteById,
   deleteRoute,
+  renameRoute,
 };
