@@ -8,12 +8,14 @@ import {
   Alert,
 } from 'react-native';
 import MapView, { MapPressEvent } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route, Coordinate } from '../models';
 import { RouteService, LocationService } from '../services';
-import { AppModal, RouteMap } from '../components';
+import { AppModal, Toast, RouteMap } from '../components';
+import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Map'>;
 
@@ -26,7 +28,16 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const [modalInput, setModalInput] = useState('');
   const [pendingCoord, setPendingCoord] = useState<Coordinate | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
   const mapRef = useRef<MapView>(null);
+  const { bottom } = useSafeAreaInsets();
+
+  const MODE_HINT: Partial<Record<DrawingMode, string>> = {
+    drawing: 'Toca el mapa para trazar la ruta',
+    checkpoint: 'Toca el mapa para marcar un checkpoint',
+    note: 'Toca el mapa para dejar una nota',
+    tracking: `Grabando con GPS… ${currentRoute?.path.length ?? 0} pts`,
+  };
 
   // Load existing route if editing
   useEffect(() => {
@@ -57,6 +68,27 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
       }
     });
   }, []);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      if (!currentRoute || currentRoute.path.length === 0) return;
+      e.preventDefault();
+      Alert.alert(
+        'Salir sin guardar',
+        'La ruta tiene cambios sin guardar. ¿Descartar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Descartar',
+            style: 'destructive',
+            onPress: () => navigation.dispatch(e.data.action),
+          },
+        ]
+      );
+    });
+    return unsub;
+  }, [navigation, currentRoute]);
 
   const handleMapPress = useCallback(
     (event: MapPressEvent) => {
@@ -96,7 +128,7 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
 
     setCurrentRoute(updated);
     setModalVisible(false);
-    setMode('idle');
+    setMode(LocationService.isTracking() ? 'tracking' : 'idle');
   }, [mode, currentRoute, pendingCoord, modalInput]);
 
   const handleStartTracking = useCallback(async () => {
@@ -128,10 +160,14 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const handleSave = useCallback(() => {
     if (!currentRoute) return;
     RouteService.saveRoute(currentRoute);
-    Alert.alert('Guardada', `Ruta "${currentRoute.name}" guardada.`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
-  }, [currentRoute, navigation]);
+    setToastVisible(true);
+  }, [currentRoute]);
+
+  const handleUndo = useCallback(() => {
+    setCurrentRoute((prev) => prev && RouteService.removeLastPathPoint(prev));
+  }, []);
+
+  const toolbarBottom = Math.max(spacing.xl, bottom + spacing.sm);
 
   return (
     <View style={styles.container}>
@@ -144,25 +180,33 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
         {currentRoute && <RouteMap route={currentRoute} />}
       </MapView>
 
-      <View style={styles.toolbar}>
+      <View style={[styles.toolbar, { bottom: toolbarBottom }]}>
         {!currentRoute && (
-          <TouchableOpacity style={styles.btn} onPress={handleNewRoute}>
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={handleNewRoute}
+            accessibilityLabel="Crear nueva ruta"
+          >
             <Text style={styles.btnText}>+ Ruta</Text>
           </TouchableOpacity>
         )}
 
-        {currentRoute && mode !== 'tracking' && (
+        {currentRoute && (
           <>
-            <TouchableOpacity
-              style={[styles.btn, mode === 'drawing' && styles.btnActive]}
-              onPress={() => setMode(mode === 'drawing' ? 'idle' : 'drawing')}
-            >
-              <Text style={styles.btnText}>Dibujar</Text>
-            </TouchableOpacity>
+            {mode !== 'tracking' && (
+              <TouchableOpacity
+                style={[styles.btn, mode === 'drawing' && styles.btnActive]}
+                onPress={() => setMode(mode === 'drawing' ? 'idle' : 'drawing')}
+                accessibilityLabel="Modo dibujar"
+              >
+                <Text style={styles.btnText}>Dibujar</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.btn, mode === 'checkpoint' && styles.btnActive]}
               onPress={() => setMode(mode === 'checkpoint' ? 'idle' : 'checkpoint')}
+              accessibilityLabel="Añadir checkpoint"
             >
               <Text style={styles.btnText}>Checkpoint</Text>
             </TouchableOpacity>
@@ -170,26 +214,68 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
             <TouchableOpacity
               style={[styles.btn, mode === 'note' && styles.btnActive]}
               onPress={() => setMode(mode === 'note' ? 'idle' : 'note')}
+              accessibilityLabel="Añadir nota"
             >
               <Text style={styles.btnText}>Nota</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.btn, styles.btnGps]} onPress={handleStartTracking}>
-              <Text style={styles.btnText}>● GPS</Text>
-            </TouchableOpacity>
+            {mode !== 'tracking' && (
+              <TouchableOpacity
+                style={[styles.btn, styles.btnGps]}
+                onPress={handleStartTracking}
+                accessibilityLabel="Grabar ruta con GPS"
+              >
+                <Text style={styles.btnText}>⏺ Grabar ruta</Text>
+              </TouchableOpacity>
+            )}
 
-            <TouchableOpacity style={[styles.btn, styles.btnSave]} onPress={handleSave}>
-              <Text style={styles.btnText}>Guardar</Text>
-            </TouchableOpacity>
+            {mode === 'drawing' && currentRoute.path.length > 0 && (
+              <TouchableOpacity
+                style={styles.btn}
+                onPress={handleUndo}
+                accessibilityLabel="Deshacer último punto"
+              >
+                <Text style={styles.btnText}>↩ Deshacer</Text>
+              </TouchableOpacity>
+            )}
+
+            {mode !== 'tracking' ? (
+              <TouchableOpacity
+                style={[styles.btn, styles.btnSave]}
+                onPress={handleSave}
+                accessibilityLabel="Guardar ruta"
+              >
+                <Text style={styles.btnText}>Guardar</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.btn, styles.btnStop]}
+                onPress={handleStopTracking}
+                accessibilityLabel="Detener grabación GPS"
+              >
+                <Text style={styles.btnText}>⏹ Detener</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
-
-        {mode === 'tracking' && (
-          <TouchableOpacity style={[styles.btn, styles.btnStop]} onPress={handleStopTracking}>
-            <Text style={styles.btnText}>■ Detener</Text>
-          </TouchableOpacity>
-        )}
       </View>
+
+      {/* Mode hint banner */}
+      {MODE_HINT[mode] && (
+        <View style={styles.modeBanner} pointerEvents="none">
+          <Text style={styles.modeBannerText}>{MODE_HINT[mode]}</Text>
+        </View>
+      )}
+
+      {/* Save toast */}
+      <Toast
+        message={`Ruta "${currentRoute?.name}" guardada`}
+        visible={toastVisible}
+        onHide={() => {
+          setToastVisible(false);
+          navigation.goBack();
+        }}
+      />
 
       {/* Modal for checkpoint / note / new route input */}
       <AppModal visible={modalVisible}>
@@ -221,10 +307,14 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
                   setModalVisible(false);
                   setMode('idle');
                 }}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
               >
                 <Text style={styles.modalCancel}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleModalConfirm}>
+              <TouchableOpacity
+                onPress={handleModalConfirm}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              >
                 <Text style={styles.modalConfirm}>Agregar</Text>
               </TouchableOpacity>
             </View>
@@ -240,50 +330,75 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   toolbar: {
     position: 'absolute',
-    bottom: 24,
-    left: 12,
-    right: 12,
+    left: spacing.md,
+    right: spacing.md,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
     justifyContent: 'center',
   },
   btn: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    backgroundColor: colors.textPrimary,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
   },
-  btnActive: { backgroundColor: '#FF6B00' },
-  btnGps: { backgroundColor: '#2196F3' },
-  btnSave: { backgroundColor: '#4CAF50' },
-  btnStop: { backgroundColor: '#e53935' },
-  btnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  btnActive: { backgroundColor: colors.primary },
+  btnGps: { backgroundColor: colors.info },
+  btnSave: { backgroundColor: colors.success },
+  btnStop: { backgroundColor: colors.danger },
+  btnText: {
+    color: colors.surface,
+    fontWeight: typography.weight.semibold,
+    fontSize: typography.size.sm,
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalBox: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: spacing.xl,
   },
-  modalTitle: { fontSize: 17, fontWeight: '600', marginBottom: 12 },
+  modalTitle: {
+    fontSize: typography.size.md + 1,
+    fontWeight: typography.weight.semibold,
+    marginBottom: spacing.md,
+  },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    fontSize: typography.size.base + 1,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 20,
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
-  modalCancel: { color: '#999', fontSize: 15 },
-  modalConfirm: { color: '#FF6B00', fontWeight: '700', fontSize: 15 },
+  modeBanner: {
+    position: 'absolute',
+    top: spacing.lg,
+    alignSelf: 'center',
+    backgroundColor: colors.overlayLight,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs + 2,
+  },
+  modeBannerText: {
+    color: colors.surface,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+  },
+  modalCancel: { color: colors.textMuted, fontSize: typography.size.base + 1 },
+  modalConfirm: {
+    color: colors.primary,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.base + 1,
+  },
 });
