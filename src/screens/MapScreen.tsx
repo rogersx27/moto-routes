@@ -15,6 +15,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route, Coordinate } from '../models';
 import { RouteService, LocationService } from '../services';
 import { AppModal, Toast, RouteMap } from '../components';
+import { useFirstTimeHint } from '../hooks/useFirstTimeHint';
 import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Map'>;
@@ -31,6 +32,7 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const [toastVisible, setToastVisible] = useState(false);
   const mapRef = useRef<MapView>(null);
   const { bottom } = useSafeAreaInsets();
+  const triggerHint = useFirstTimeHint();
 
   const MODE_HINT: Partial<Record<DrawingMode, string>> = {
     drawing: 'Toca el mapa para trazar la ruta',
@@ -196,7 +198,11 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
             {mode !== 'tracking' && (
               <TouchableOpacity
                 style={[styles.btn, mode === 'drawing' && styles.btnActive]}
-                onPress={() => setMode(mode === 'drawing' ? 'idle' : 'drawing')}
+                onPress={() => {
+                  const next = mode === 'drawing' ? 'idle' : 'drawing';
+                  setMode(next);
+                  if (next === 'drawing') triggerHint('drawing');
+                }}
                 accessibilityLabel="Modo dibujar"
               >
                 <Text style={styles.btnText}>Dibujar</Text>
@@ -205,7 +211,11 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
 
             <TouchableOpacity
               style={[styles.btn, mode === 'checkpoint' && styles.btnActive]}
-              onPress={() => setMode(mode === 'checkpoint' ? 'idle' : 'checkpoint')}
+              onPress={() => {
+                const next = mode === 'checkpoint' ? 'idle' : 'checkpoint';
+                setMode(next);
+                if (next === 'checkpoint') triggerHint('checkpoint');
+              }}
               accessibilityLabel="Añadir checkpoint"
             >
               <Text style={styles.btnText}>Checkpoint</Text>
@@ -213,7 +223,11 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
 
             <TouchableOpacity
               style={[styles.btn, mode === 'note' && styles.btnActive]}
-              onPress={() => setMode(mode === 'note' ? 'idle' : 'note')}
+              onPress={() => {
+                const next = mode === 'note' ? 'idle' : 'note';
+                setMode(next);
+                if (next === 'note') triggerHint('note');
+              }}
               accessibilityLabel="Añadir nota"
             >
               <Text style={styles.btnText}>Nota</Text>
@@ -259,6 +273,15 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
           </>
         )}
       </View>
+
+      {/* Empty state — no route loaded */}
+      {!currentRoute && mode === 'idle' && (
+        <View style={styles.emptyState} pointerEvents="none">
+          <Text style={styles.emptyStateText}>
+            Toca "+ Ruta" para comenzar a trazar tu recorrido
+          </Text>
+        </View>
+      )}
 
       {/* Mode hint banner */}
       {MODE_HINT[mode] && (
@@ -380,6 +403,23 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 20,
     marginTop: spacing.lg,
+  },
+  emptyState: {
+    position: 'absolute',
+    top: '40%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    maxWidth: 260,
+  },
+  emptyStateText: {
+    color: colors.textPrimary,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   modeBanner: {
     position: 'absolute',
