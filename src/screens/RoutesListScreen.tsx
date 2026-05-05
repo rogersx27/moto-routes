@@ -22,7 +22,11 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
   // Reload routes every time this screen gains focus
   useFocusEffect(
     useCallback(() => {
-      setRoutes(RouteService.getAllRoutes());
+      try {
+        setRoutes(RouteService.getAllRoutes());
+      } catch {
+        Alert.alert('Error', 'No se pudieron cargar las rutas.');
+      }
     }, [])
   );
 

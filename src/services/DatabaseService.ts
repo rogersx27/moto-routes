@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import type { Route, Checkpoint, Note } from '../models';
+import type { Route, Checkpoint, Note, Coordinate } from '../models';
 
 const DB_NAME = 'moto_routes.db';
 
@@ -11,6 +11,14 @@ const getDb = (): SQLite.SQLiteDatabase => {
     db = SQLite.openDatabaseSync(DB_NAME);
   }
   return db;
+};
+
+const parseJsonPath = (raw: string): Coordinate[] => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
 };
 
 const initSchema = (): void => {
@@ -51,27 +59,31 @@ const initSchema = (): void => {
 const saveRoute = (route: Route): void => {
   const database = getDb();
 
-  database.runSync(
-    `INSERT OR REPLACE INTO routes (id, name, description, path, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [route.id, route.name, route.description, JSON.stringify(route.path), route.createdAt, route.updatedAt]
-  );
-
-  route.checkpoints.forEach((cp) => {
+  try {
     database.runSync(
-      `INSERT OR REPLACE INTO checkpoints (id, route_id, latitude, longitude, label, created_at)
+      `INSERT OR REPLACE INTO routes (id, name, description, path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [cp.id, cp.routeId, cp.coordinate.latitude, cp.coordinate.longitude, cp.label, cp.createdAt]
+      [route.id, route.name, route.description, JSON.stringify(route.path), route.createdAt, route.updatedAt]
     );
-  });
 
-  route.notes.forEach((note) => {
-    database.runSync(
-      `INSERT OR REPLACE INTO notes (id, route_id, latitude, longitude, text, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [note.id, note.routeId, note.coordinate.latitude, note.coordinate.longitude, note.text, note.createdAt]
-    );
-  });
+    route.checkpoints.forEach((cp) => {
+      database.runSync(
+        `INSERT OR REPLACE INTO checkpoints (id, route_id, latitude, longitude, label, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [cp.id, cp.routeId, cp.coordinate.latitude, cp.coordinate.longitude, cp.label, cp.createdAt]
+      );
+    });
+
+    route.notes.forEach((note) => {
+      database.runSync(
+        `INSERT OR REPLACE INTO notes (id, route_id, latitude, longitude, text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [note.id, note.routeId, note.coordinate.latitude, note.coordinate.longitude, note.text, note.createdAt]
+      );
+    });
+  } catch (e) {
+    throw new Error(`Error al guardar la ruta: ${(e as Error).message}`);
+  }
 };
 
 const fetchAllRoutes = (): Route[] => {
@@ -94,7 +106,7 @@ const fetchAllRoutes = (): Route[] => {
       id: row.id,
       name: row.name,
       description: row.description,
-      path: JSON.parse(row.path),
+      path: parseJsonPath(row.path),
       checkpoints,
       notes,
       createdAt: row.created_at,

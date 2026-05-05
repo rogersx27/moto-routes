@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -28,6 +29,7 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const [pendingCoord, setPendingCoord] = useState<Coordinate | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
   const mapRef = useRef<MapView>(null);
+  const isMountedRef = useRef(true);
 
   // Load existing route if editing
   useEffect(() => {
@@ -38,9 +40,11 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
     }
   }, [navParams.params?.routeId]);
 
-  // Center map on user location on mount
+  // Center map on user location on mount; stop GPS and mark unmounted on cleanup
   useEffect(() => {
+    isMountedRef.current = true;
     LocationService.getCurrentPosition().then((coord) => {
+      if (!isMountedRef.current) return;
       if (coord) {
         setUserLocation(coord);
         mapRef.current?.animateToRegion({
@@ -50,7 +54,22 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
         });
       }
     });
+    return () => {
+      isMountedRef.current = false;
+      LocationService.stopTracking();
+    };
   }, []);
+
+  // Reset modal state when screen loses focus (e.g. Android back during open modal)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setModalVisible(false);
+        setModalInput('');
+        setPendingCoord(null);
+      };
+    }, [])
+  );
 
   const handleMapPress = useCallback(
     (event: MapPressEvent) => {
@@ -119,10 +138,14 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
 
   const handleSave = useCallback(() => {
     if (!currentRoute) return;
-    RouteService.saveRoute(currentRoute);
-    Alert.alert('Guardada', `Ruta "${currentRoute.name}" guardada.`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+    try {
+      RouteService.saveRoute(currentRoute);
+      Alert.alert('Guardada', `Ruta "${currentRoute.name}" guardada.`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch {
+      Alert.alert('Error', 'No se pudo guardar la ruta. Intenta de nuevo.');
+    }
   }, [currentRoute, navigation]);
 
   return (
