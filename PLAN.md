@@ -81,7 +81,7 @@ Marca cada tarea con `[x]` al completarla.
 ## Fase 2 — MapScreen: flujo de edición
 
 ### 2.1 Indicador de modo activo en el mapa
-- [ ] Mostrar un banner contextual sobre el mapa que describe el modo actual
+- [x] Mostrar un banner contextual sobre el mapa que describe el modo actual
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 
@@ -235,7 +235,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 2.6 Confirmación de guardado sin Alert bloqueante
-- [ ] Reemplazar Alert.alert de guardado por un toast no-modal
+- [x] Reemplazar Alert.alert de guardado por un toast no-modal
 
 **Archivos a crear/editar:** `src/components/Toast.tsx`, `src/screens/MapScreen.tsx`
 

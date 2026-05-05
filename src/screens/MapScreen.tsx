@@ -14,7 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route, Coordinate } from '../models';
 import { RouteService, LocationService } from '../services';
-import { AppModal, RouteMap } from '../components';
+import { AppModal, Toast, RouteMap } from '../components';
 import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Map'>;
@@ -28,8 +28,16 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const [modalInput, setModalInput] = useState('');
   const [pendingCoord, setPendingCoord] = useState<Coordinate | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
   const mapRef = useRef<MapView>(null);
   const { bottom } = useSafeAreaInsets();
+
+  const MODE_HINT: Partial<Record<DrawingMode, string>> = {
+    drawing: 'Toca el mapa para trazar la ruta',
+    checkpoint: 'Toca el mapa para marcar un checkpoint',
+    note: 'Toca el mapa para dejar una nota',
+    tracking: `Grabando con GPS… ${currentRoute?.path.length ?? 0} pts`,
+  };
 
   // Load existing route if editing
   useEffect(() => {
@@ -152,10 +160,8 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const handleSave = useCallback(() => {
     if (!currentRoute) return;
     RouteService.saveRoute(currentRoute);
-    Alert.alert('Guardada', `Ruta "${currentRoute.name}" guardada.`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
-  }, [currentRoute, navigation]);
+    setToastVisible(true);
+  }, [currentRoute]);
 
   const handleUndo = useCallback(() => {
     setCurrentRoute((prev) => prev && RouteService.removeLastPathPoint(prev));
@@ -253,6 +259,23 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
           </>
         )}
       </View>
+
+      {/* Mode hint banner */}
+      {MODE_HINT[mode] && (
+        <View style={styles.modeBanner} pointerEvents="none">
+          <Text style={styles.modeBannerText}>{MODE_HINT[mode]}</Text>
+        </View>
+      )}
+
+      {/* Save toast */}
+      <Toast
+        message={`Ruta "${currentRoute?.name}" guardada`}
+        visible={toastVisible}
+        onHide={() => {
+          setToastVisible(false);
+          navigation.goBack();
+        }}
+      />
 
       {/* Modal for checkpoint / note / new route input */}
       <AppModal visible={modalVisible}>
@@ -357,6 +380,20 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 20,
     marginTop: spacing.lg,
+  },
+  modeBanner: {
+    position: 'absolute',
+    top: spacing.lg,
+    alignSelf: 'center',
+    backgroundColor: colors.overlayLight,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs + 2,
+  },
+  modeBannerText: {
+    color: colors.surface,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
   },
   modalCancel: { color: colors.textMuted, fontSize: typography.size.base + 1 },
   modalConfirm: {
