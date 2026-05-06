@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   Alert,
 } from 'react-native';
@@ -15,7 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { Route } from '../models';
 import { RouteService } from '../services';
-import { AppModal, RouteMap } from '../components';
+import { InputModal, ActionButton, RouteMap } from '../components';
 import { colors, typography, spacing, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RouteDetail'>;
@@ -160,56 +159,33 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
         <Text style={styles.noAnnotations}>Sin checkpoints ni notas aún.</Text>
       )}
 
-      <TouchableOpacity
-        style={styles.editBtn}
+      <ActionButton
+        label="Editar ruta"
         onPress={() => navigation.navigate('Map', { routeId: route.id })}
         accessibilityLabel="Editar ruta en el mapa"
-      >
-        <Text style={styles.editBtnText}>Editar ruta</Text>
-      </TouchableOpacity>
+        style={{ marginTop: spacing.xxl }}
+      />
 
-      <TouchableOpacity
-        style={styles.deleteBtn}
+      <ActionButton
+        label="Eliminar ruta"
         onPress={handleDelete}
+        variant="danger"
         accessibilityLabel="Eliminar ruta"
-      >
-        <Text style={styles.deleteBtnText}>Eliminar ruta</Text>
-      </TouchableOpacity>
+        style={{ marginTop: spacing.md }}
+      />
 
       {/* Rename modal */}
-      <AppModal visible={renameVisible}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Renombrar ruta</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={renameInput}
-              onChangeText={setRenameInput}
-              placeholder="Nombre de la ruta"
-              autoFocus
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                onPress={() => setRenameVisible(false)}
-                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-              >
-                <Text style={styles.modalCancel}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleRenameConfirm}
-                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-              >
-                <Text style={[
-                  styles.modalConfirm,
-                  !renameInput.trim() && styles.modalConfirmDisabled,
-                ]}>
-                  Guardar
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </AppModal>
+      <InputModal
+        visible={renameVisible}
+        title="Renombrar ruta"
+        placeholder="Nombre de la ruta"
+        value={renameInput}
+        onChange={setRenameInput}
+        onConfirm={handleRenameConfirm}
+        onCancel={() => setRenameVisible(false)}
+        confirmLabel="Guardar"
+        confirmDisabled={!renameInput.trim()}
+      />
     </ScrollView>
   );
 };
@@ -286,65 +262,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
 
-  editBtn: {
-    marginTop: spacing.xxl,
-    marginHorizontal: spacing.xl,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  editBtnText: {
-    color: colors.surface,
-    fontWeight: typography.weight.bold,
-    fontSize: typography.size.md,
-  },
-  deleteBtn: {
-    marginTop: spacing.md,
-    marginHorizontal: spacing.xl,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  deleteBtnText: {
-    color: colors.danger,
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalBox: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.xl,
-  },
-  modalTitle: {
-    fontSize: typography.size.md + 1,
-    fontWeight: typography.weight.semibold,
-    marginBottom: spacing.md,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    fontSize: typography.size.base + 1,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 20,
-    marginTop: spacing.lg,
-  },
-  modalCancel: { color: colors.textMuted, fontSize: typography.size.base + 1 },
-  modalConfirm: {
-    color: colors.primary,
-    fontWeight: typography.weight.bold,
-    fontSize: typography.size.base + 1,
-  },
-  modalConfirmDisabled: { color: colors.border },
 });
