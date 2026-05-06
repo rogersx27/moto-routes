@@ -5,14 +5,6 @@ type LocationCallback = (coordinate: Coordinate) => void;
 
 let watchSubscription: ExpoLocation.LocationSubscription | null = null;
 
-const requestPermissions = async (): Promise<boolean> => {
-  const { status: foreground } = await ExpoLocation.requestForegroundPermissionsAsync();
-  if (foreground !== 'granted') return false;
-
-  const { status: background } = await ExpoLocation.requestBackgroundPermissionsAsync();
-  return background === 'granted';
-};
-
 const getCurrentPosition = async (): Promise<Coordinate | null> => {
   const { status } = await ExpoLocation.getForegroundPermissionsAsync();
   if (status !== 'granted') return null;
@@ -57,7 +49,6 @@ const stopTracking = (): void => {
 const isTracking = (): boolean => watchSubscription !== null;
 
 export const LocationService = {
-  requestPermissions,
   getCurrentPosition,
   startTracking,
   stopTracking,

@@ -26,7 +26,7 @@ export const InputModal: React.FC<Props> = ({
   confirmLabel = 'Confirmar',
   confirmDisabled = false,
 }) => (
-  <AppModal visible={visible}>
+  <AppModal visible={visible} onRequestClose={onCancel}>
     <View style={styles.overlay}>
       <View style={styles.box}>
         <Text style={styles.title}>{title}</Text>
@@ -36,6 +36,8 @@ export const InputModal: React.FC<Props> = ({
           onChangeText={onChange}
           placeholder={placeholder}
           autoFocus
+          returnKeyType="done"
+          onSubmitEditing={confirmDisabled ? undefined : onConfirm}
         />
         <View style={styles.actions}>
           <TouchableOpacity
@@ -46,6 +48,7 @@ export const InputModal: React.FC<Props> = ({
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onConfirm}
+            disabled={confirmDisabled}
             hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
           >
             <Text style={[styles.confirm, confirmDisabled && styles.confirmDisabled]}>
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   title: {
-    fontSize: typography.size.md + 1,
+    fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     marginBottom: spacing.md,
   },
@@ -80,19 +83,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.sm,
     padding: spacing.md,
-    fontSize: typography.size.base + 1,
+    fontSize: typography.size.base,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 20,
+    gap: spacing.xl,
     marginTop: spacing.lg,
   },
-  cancel: { color: colors.textMuted, fontSize: typography.size.base + 1 },
+  cancel: { color: colors.textMuted, fontSize: typography.size.base },
   confirm: {
     color: colors.primary,
     fontWeight: typography.weight.bold,
-    fontSize: typography.size.base + 1,
+    fontSize: typography.size.base,
   },
   confirmDisabled: { color: colors.border },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { Polyline } from 'react-native-maps';
 
 import type { Route } from '../models';
+import { colors } from '../theme';
 import { CheckpointMarker } from './CheckpointMarker';
 import { NoteMarker } from './NoteMarker';
 
@@ -13,7 +14,7 @@ export const RouteMap: React.FC<Props> = ({ route }) => (
   <>
     <Polyline
       coordinates={route.path}
-      strokeColor="#FF6B00"
+      strokeColor={colors.primary}
       strokeWidth={4}
     />
 

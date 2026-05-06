@@ -30,18 +30,22 @@ export const useFirstTimeHint = () => {
   const triggerHint = useCallback(async (key: HintKey) => {
     if (seen.current.has(key)) return;
 
-    const storageKey = `${STORAGE_PREFIX}${key}`;
-    const alreadySeen = await AsyncStorage.getItem(storageKey);
-    if (alreadySeen) {
+    try {
+      const storageKey = `${STORAGE_PREFIX}${key}`;
+      const alreadySeen = await AsyncStorage.getItem(storageKey);
+      if (alreadySeen) {
+        seen.current.add(key);
+        return;
+      }
+
       seen.current.add(key);
-      return;
+      await AsyncStorage.setItem(storageKey, 'true');
+
+      const { title, message } = HINT_CONTENT[key];
+      Alert.alert(title, message, [{ text: 'Entendido' }]);
+    } catch {
+      // AsyncStorage failure — skip hint silently rather than crashing
     }
-
-    seen.current.add(key);
-    await AsyncStorage.setItem(storageKey, 'true');
-
-    const { title, message } = HINT_CONTENT[key];
-    Alert.alert(title, message, [{ text: 'Entendido' }]);
   }, []);
 
   return triggerHint;

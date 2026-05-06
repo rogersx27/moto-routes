@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 
 import type { Checkpoint } from '../models';
+import { colors, typography, spacing } from '../theme';
 
 interface Props {
   checkpoint: Checkpoint;
@@ -23,13 +24,13 @@ const styles = StyleSheet.create({
   marker: { alignItems: 'center', maxWidth: 80 },
   icon: { fontSize: 24 },
   label: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
     overflow: 'hidden',
   },
 });

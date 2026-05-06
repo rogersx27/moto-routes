@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -32,12 +32,12 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const { bottom } = useSafeAreaInsets();
   const triggerHint = useFirstTimeHint();
 
-  const MODE_HINT: Partial<Record<DrawingMode, string>> = {
+  const MODE_HINT = useMemo<Partial<Record<DrawingMode, string>>>(() => ({
     drawing: 'Toca el mapa para trazar la ruta',
     checkpoint: 'Toca el mapa para marcar un checkpoint',
     note: 'Toca el mapa para dejar una nota',
     tracking: `Grabando con GPS… ${currentRoute?.path.length ?? 0} pts`,
-  };
+  }), [currentRoute?.path.length]);
 
   // Load existing route if editing
   useEffect(() => {
