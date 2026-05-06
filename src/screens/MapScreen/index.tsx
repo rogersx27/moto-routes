@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Alert, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import MapView, { MapPressEvent } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,7 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import type { Route, Coordinate } from '../../models';
 import { RouteService, LocationService } from '../../services';
-import { InputModal, Toast, RouteMap } from '../../components';
+import { AlertDialog, InputModal, Toast, RouteMap } from '../../components';
 import { useFirstTimeHint } from '../../hooks/useFirstTimeHint';
 import { spacing } from '../../theme';
 import type { DrawingMode } from './types';
@@ -25,9 +25,14 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
   const [pendingCoord, setPendingCoord] = useState<Coordinate | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [leaveAlert, setLeaveAlert] = useState<{ visible: boolean; action: (() => void) | null }>({
+    visible: false,
+    action: null,
+  });
+  const [infoAlert, setInfoAlert] = useState({ visible: false, title: '', message: '' });
   const mapRef = useRef<MapView>(null);
   const { bottom } = useSafeAreaInsets();
-  const triggerHint = useFirstTimeHint();
+  const { triggerHint, hintDialog, dismissHint } = useFirstTimeHint();
 
   const modeHint = useMemo<Partial<Record<DrawingMode, string>>>(() => ({
     drawing: 'Toca el mapa para trazar la ruta',
@@ -65,18 +70,7 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
     const unsub = navigation.addListener('beforeRemove', (e) => {
       if (!currentRoute || currentRoute.path.length === 0) return;
       e.preventDefault();
-      Alert.alert(
-        'Salir sin guardar',
-        'La ruta tiene cambios sin guardar. ¿Descartar?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Descartar',
-            style: 'destructive',
-            onPress: () => navigation.dispatch(e.data.action),
-          },
-        ]
-      );
+      setLeaveAlert({ visible: true, action: () => navigation.dispatch(e.data.action) });
     });
     return unsub;
   }, [navigation, currentRoute]);
@@ -114,15 +108,22 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
 
   const handleStartTracking = useCallback(async () => {
     if (!currentRoute) {
-      Alert.alert('Crea una ruta primero');
+      setInfoAlert({ visible: true, title: 'Crea una ruta primero', message: '' });
       return;
     }
     const started = await LocationService.startTracking((coord) => {
       setUserLocation(coord);
       setCurrentRoute((prev) => prev && RouteService.appendPathPoint(prev, coord));
     });
-    if (started) setMode('tracking');
-    else Alert.alert('Permiso denegado', 'Activa la ubicación para grabar el trayecto.');
+    if (started) {
+      setMode('tracking');
+    } else {
+      setInfoAlert({
+        visible: true,
+        title: 'Permiso denegado',
+        message: 'Activa la ubicación para grabar el trayecto.',
+      });
+    }
   }, [currentRoute]);
 
   const handleStopTracking = useCallback(() => {
@@ -226,6 +227,34 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
           setMode('idle');
         }}
         confirmLabel="Agregar"
+      />
+
+      <AlertDialog
+        visible={leaveAlert.visible}
+        title="Salir sin guardar"
+        message="La ruta tiene cambios sin guardar. ¿Descartar?"
+        confirmLabel="Descartar"
+        confirmVariant="danger"
+        onConfirm={() => {
+          leaveAlert.action?.();
+          setLeaveAlert({ visible: false, action: null });
+        }}
+        onCancel={() => setLeaveAlert({ visible: false, action: null })}
+      />
+
+      <AlertDialog
+        visible={infoAlert.visible}
+        title={infoAlert.title}
+        message={infoAlert.message || undefined}
+        onConfirm={() => setInfoAlert((prev) => ({ ...prev, visible: false }))}
+      />
+
+      <AlertDialog
+        visible={hintDialog.visible}
+        title={hintDialog.title}
+        message={hintDialog.message}
+        confirmLabel="Entendido"
+        onConfirm={dismissHint}
       />
     </View>
   );

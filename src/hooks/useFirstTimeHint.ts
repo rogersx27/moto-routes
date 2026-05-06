@@ -1,5 +1,4 @@
-import { useCallback, useRef } from 'react';
-import { Alert } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type HintKey = 'drawing' | 'checkpoint' | 'note';
@@ -22,14 +21,23 @@ const HINT_CONTENT: Record<HintKey, { title: string; message: string }> = {
 
 const STORAGE_PREFIX = 'hint_seen_';
 
-// Returns a stable function that shows the hint for a given key only once ever.
+interface HintDialogState {
+  visible: boolean;
+  title: string;
+  message: string;
+}
+
+// Returns a stable triggerHint function and dialog state to render an AlertDialog.
 export const useFirstTimeHint = () => {
-  // In-memory cache so we don't hit AsyncStorage on every mode switch
   const seen = useRef<Set<HintKey>>(new Set());
+  const [hintDialog, setHintDialog] = useState<HintDialogState>({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   const triggerHint = useCallback(async (key: HintKey) => {
     if (seen.current.has(key)) return;
-
     try {
       const storageKey = `${STORAGE_PREFIX}${key}`;
       const alreadySeen = await AsyncStorage.getItem(storageKey);
@@ -37,16 +45,18 @@ export const useFirstTimeHint = () => {
         seen.current.add(key);
         return;
       }
-
       seen.current.add(key);
       await AsyncStorage.setItem(storageKey, 'true');
-
       const { title, message } = HINT_CONTENT[key];
-      Alert.alert(title, message, [{ text: 'Entendido' }]);
+      setHintDialog({ visible: true, title, message });
     } catch {
       // AsyncStorage failure — skip hint silently rather than crashing
     }
   }, []);
 
-  return triggerHint;
+  const dismissHint = useCallback(() => {
+    setHintDialog((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  return { triggerHint, hintDialog, dismissHint };
 };

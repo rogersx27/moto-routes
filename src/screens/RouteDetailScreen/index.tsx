@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import MapView from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,7 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import type { Route } from '../../models';
 import { RouteService } from '../../services';
-import { InputModal, ActionButton, RouteMap } from '../../components';
+import { AlertDialog, InputModal, ActionButton, RouteMap } from '../../components';
 import { colors, typography, spacing } from '../../theme';
 import { RouteDetailHeader } from './RouteDetailHeader';
 import { CheckpointsList } from './CheckpointsList';
@@ -41,6 +40,7 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
   const [route, setRoute] = useState<Route | null>(null);
   const [renameVisible, setRenameVisible] = useState(false);
   const [renameInput, setRenameInput] = useState('');
+  const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,20 +72,6 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
     RouteService.renameRoute(route.id, renameInput.trim());
     setRoute((prev) => prev && { ...prev, name: renameInput.trim() });
     setRenameVisible(false);
-  };
-
-  const handleDelete = () => {
-    Alert.alert('Eliminar ruta', '¿Eliminar esta ruta permanentemente?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => {
-          RouteService.deleteRoute(route.id);
-          navigation.goBack();
-        },
-      },
-    ]);
   };
 
   return (
@@ -134,7 +120,7 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
 
       <ActionButton
         label="Eliminar ruta"
-        onPress={handleDelete}
+        onPress={() => setDeleteAlertVisible(true)}
         variant="danger"
         accessibilityLabel="Eliminar ruta"
         style={{ marginTop: spacing.md }}
@@ -150,6 +136,19 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
         onCancel={() => setRenameVisible(false)}
         confirmLabel="Guardar"
         confirmDisabled={!renameInput.trim()}
+      />
+
+      <AlertDialog
+        visible={deleteAlertVisible}
+        title="Eliminar ruta"
+        message="¿Eliminar esta ruta permanentemente?"
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        onConfirm={() => {
+          RouteService.deleteRoute(route.id);
+          navigation.goBack();
+        }}
+        onCancel={() => setDeleteAlertVisible(false)}
       />
     </ScrollView>
   );

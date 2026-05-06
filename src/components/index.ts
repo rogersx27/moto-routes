@@ -1,3 +1,4 @@
+export { AlertDialog } from './AlertDialog';
 export { AppModal } from './AppModal';
 export { InputModal } from './InputModal';
 export { PillButton } from './PillButton';
