@@ -1,6 +1,17 @@
 import * as SQLite from 'expo-sqlite';
-import type { Route, Checkpoint, Note } from '../models';
+import type { Route } from '../models';
 import { DDL, MIGRATIONS, SCHEMA_VERSION } from '../db/schema';
+import {
+  fromCheckpoint,
+  fromNote,
+  fromRoute,
+  toCheckpoint,
+  toNote,
+  toRoute,
+  type CheckpointRow,
+  type NoteRow,
+  type RouteRow,
+} from '../db/serializers';
 
 const DB_NAME = 'moto_routes.db';
 
@@ -31,31 +42,33 @@ const getDb = (): SQLite.SQLiteDatabase => {
 
 const saveRoute = (route: Route): void => {
   const database = getDb();
+  const r = fromRoute(route);
 
   database.withTransactionSync(() => {
     database.runSync(
       `INSERT OR REPLACE INTO routes (id, name, description, path, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [route.id, route.name, route.description, JSON.stringify(route.path), route.createdAt, route.updatedAt]
+      [r.id, r.name, r.description, r.path, r.created_at, r.updated_at]
     );
 
-    // Delete before insert so removed checkpoints/notes don't linger
     database.runSync('DELETE FROM checkpoints WHERE route_id = ?', [route.id]);
     database.runSync('DELETE FROM notes WHERE route_id = ?', [route.id]);
 
     route.checkpoints.forEach((cp) => {
+      const c = fromCheckpoint(cp);
       database.runSync(
         `INSERT INTO checkpoints (id, route_id, latitude, longitude, label, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [cp.id, cp.routeId, cp.coordinate.latitude, cp.coordinate.longitude, cp.label, cp.createdAt]
+        [c.id, c.route_id, c.latitude, c.longitude, c.label, c.created_at]
       );
     });
 
     route.notes.forEach((note) => {
+      const n = fromNote(note);
       database.runSync(
         `INSERT INTO notes (id, route_id, latitude, longitude, text, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [note.id, note.routeId, note.coordinate.latitude, note.coordinate.longitude, note.text, note.createdAt]
+        [n.id, n.route_id, n.latitude, n.longitude, n.text, n.created_at]
       );
     });
   });
@@ -64,170 +77,68 @@ const saveRoute = (route: Route): void => {
 const fetchAllRoutes = (): Route[] => {
   const database = getDb();
 
-  const rows = database.getAllSync<{
-    id: string;
-    name: string;
-    description: string;
-    path: string;
-    created_at: number;
-    updated_at: number;
-  }>('SELECT * FROM routes ORDER BY updated_at DESC');
+  const rows = database.getAllSync<RouteRow>(
+    'SELECT * FROM routes ORDER BY updated_at DESC'
+  );
 
   if (rows.length === 0) return [];
 
-  // Batch fetch checkpoints and notes (avoids N+1 queries)
   const ids = rows.map((r) => r.id);
   const placeholders = ids.map(() => '?').join(',');
 
-  const allCheckpointRows = database.getAllSync<{
-    id: string;
-    route_id: string;
-    latitude: number;
-    longitude: number;
-    label: string;
-    created_at: number;
-  }>(`SELECT * FROM checkpoints WHERE route_id IN (${placeholders})`, ids);
+  const checkpointRows = database.getAllSync<CheckpointRow>(
+    `SELECT * FROM checkpoints WHERE route_id IN (${placeholders})`,
+    ids
+  );
 
-  const allNoteRows = database.getAllSync<{
-    id: string;
-    route_id: string;
-    latitude: number;
-    longitude: number;
-    text: string;
-    created_at: number;
-  }>(`SELECT * FROM notes WHERE route_id IN (${placeholders})`, ids);
+  const noteRows = database.getAllSync<NoteRow>(
+    `SELECT * FROM notes WHERE route_id IN (${placeholders})`,
+    ids
+  );
 
-  const checkpointsByRoute = new Map<string, Checkpoint[]>();
-  const notesByRoute = new Map<string, Note[]>();
+  const checkpointsByRoute = new Map(ids.map((id) => [id, [] as ReturnType<typeof toCheckpoint>[]]));
+  const notesByRoute = new Map(ids.map((id) => [id, [] as ReturnType<typeof toNote>[]]));
 
-  for (const row of allCheckpointRows) {
-    const list = checkpointsByRoute.get(row.route_id) ?? [];
-    list.push({
-      id: row.id,
-      routeId: row.route_id,
-      coordinate: { latitude: row.latitude, longitude: row.longitude },
-      label: row.label,
-      createdAt: row.created_at,
-    });
-    checkpointsByRoute.set(row.route_id, list);
+  for (const row of checkpointRows) {
+    checkpointsByRoute.get(row.route_id)?.push(toCheckpoint(row));
   }
 
-  for (const row of allNoteRows) {
-    const list = notesByRoute.get(row.route_id) ?? [];
-    list.push({
-      id: row.id,
-      routeId: row.route_id,
-      coordinate: { latitude: row.latitude, longitude: row.longitude },
-      text: row.text,
-      createdAt: row.created_at,
-    });
-    notesByRoute.set(row.route_id, list);
+  for (const row of noteRows) {
+    notesByRoute.get(row.route_id)?.push(toNote(row));
   }
 
-  return rows.map((row) => {
-    let path: { latitude: number; longitude: number }[];
-    try {
-      path = JSON.parse(row.path);
-    } catch {
-      path = [];
-    }
-
-    return {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      path,
-      checkpoints: checkpointsByRoute.get(row.id) ?? [],
-      notes: notesByRoute.get(row.id) ?? [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
-  });
+  return rows.map((row) =>
+    toRoute(row, checkpointsByRoute.get(row.id) ?? [], notesByRoute.get(row.id) ?? [])
+  );
 };
 
 const fetchRouteById = (id: string): Route | null => {
   const database = getDb();
 
-  const row = database.getFirstSync<{
-    id: string;
-    name: string;
-    description: string;
-    path: string;
-    created_at: number;
-    updated_at: number;
-  }>('SELECT * FROM routes WHERE id = ?', [id]);
+  const row = database.getFirstSync<RouteRow>(
+    'SELECT * FROM routes WHERE id = ?',
+    [id]
+  );
 
   if (!row) return null;
 
-  let path: { latitude: number; longitude: number }[];
-  try {
-    path = JSON.parse(row.path);
-  } catch {
-    path = [];
-  }
+  const checkpoints = database
+    .getAllSync<CheckpointRow>('SELECT * FROM checkpoints WHERE route_id = ?', [id])
+    .map(toCheckpoint);
 
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    path,
-    checkpoints: fetchCheckpointsByRouteId(row.id),
-    notes: fetchNotesByRouteId(row.id),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-};
+  const notes = database
+    .getAllSync<NoteRow>('SELECT * FROM notes WHERE route_id = ?', [id])
+    .map(toNote);
 
-const fetchCheckpointsByRouteId = (routeId: string): Checkpoint[] => {
-  const database = getDb();
-
-  const rows = database.getAllSync<{
-    id: string;
-    route_id: string;
-    latitude: number;
-    longitude: number;
-    label: string;
-    created_at: number;
-  }>('SELECT * FROM checkpoints WHERE route_id = ?', [routeId]);
-
-  return rows.map((row) => ({
-    id: row.id,
-    routeId: row.route_id,
-    coordinate: { latitude: row.latitude, longitude: row.longitude },
-    label: row.label,
-    createdAt: row.created_at,
-  }));
-};
-
-const fetchNotesByRouteId = (routeId: string): Note[] => {
-  const database = getDb();
-
-  const rows = database.getAllSync<{
-    id: string;
-    route_id: string;
-    latitude: number;
-    longitude: number;
-    text: string;
-    created_at: number;
-  }>('SELECT * FROM notes WHERE route_id = ?', [routeId]);
-
-  return rows.map((row) => ({
-    id: row.id,
-    routeId: row.route_id,
-    coordinate: { latitude: row.latitude, longitude: row.longitude },
-    text: row.text,
-    createdAt: row.created_at,
-  }));
+  return toRoute(row, checkpoints, notes);
 };
 
 const deleteRoute = (id: string): void => {
-  const database = getDb();
-  database.runSync('DELETE FROM routes WHERE id = ?', [id]);
+  getDb().runSync('DELETE FROM routes WHERE id = ?', [id]);
 };
 
 const renameRoute = (id: string, name: string): void => {
-  const database = getDb();
-  database.runSync(
+  getDb().runSync(
     'UPDATE routes SET name = ?, updated_at = ? WHERE id = ?',
     [name, Date.now(), id]
   );
