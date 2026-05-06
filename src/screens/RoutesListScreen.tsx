@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -20,7 +20,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoutesList'>;
 
 export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
   const [routes, setRoutes] = useState<Route[]>([]);
-  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
+
+  const getItemRef = useCallback((id: string): React.RefObject<SwipeableMethods | null> => {
+    if (!swipeableRefs.current.has(id)) {
+      swipeableRefs.current.set(id, React.createRef<SwipeableMethods | null>());
+    }
+    return swipeableRefs.current.get(id)!;
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,7 +40,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
       {
         text: 'Cancelar',
         style: 'cancel',
-        onPress: () => swipeableRefs.current.get(id)?.close(),
+        onPress: () => swipeableRefs.current.get(id)?.current?.close(),
       },
       {
         text: 'Eliminar',
@@ -41,6 +48,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
         onPress: () => {
           RouteService.deleteRoute(id);
           setRoutes((prev) => prev.filter((r) => r.id !== id));
+          swipeableRefs.current.delete(id);
         },
       },
     ]);
@@ -65,11 +73,8 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
     });
 
     return (
-      <Swipeable
-        ref={(ref) => {
-          if (ref) swipeableRefs.current.set(item.id, ref);
-          else swipeableRefs.current.delete(item.id);
-        }}
+      <ReanimatedSwipeable
+        ref={getItemRef(item.id)}
         renderRightActions={() => renderRightActions(item.id, item.name)}
         overshootRight={false}
       >
@@ -84,9 +89,9 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <Text style={styles.routeDate}>{date}</Text>
         </TouchableOpacity>
-      </Swipeable>
+      </ReanimatedSwipeable>
     );
-  }, [navigation, renderRightActions]);
+  }, [navigation, renderRightActions, getItemRef]);
 
   const emptyComponent = useMemo(() => (
     <View style={styles.emptyContainer}>
