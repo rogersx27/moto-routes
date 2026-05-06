@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Marker, Callout } from 'react-native-maps';
 
 import type { Note } from '../models';
+import { colors, typography, spacing } from '../theme';
 
 interface Props {
   note: Note;
@@ -26,7 +27,7 @@ const styles = StyleSheet.create({
   icon: { fontSize: 24 },
   callout: {
     maxWidth: 200,
-    padding: 8,
+    padding: spacing.sm,
   },
-  calloutText: { fontSize: 13, color: '#333' },
+  calloutText: { fontSize: typography.size.sm, color: colors.textPrimary },
 });

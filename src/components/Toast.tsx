@@ -21,7 +21,7 @@ export const Toast: React.FC<Props> = ({ message, visible, onHide }) => {
       Animated.delay(1600),
       Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => onHide());
-  }, [visible]);
+  }, [visible, onHide]);
 
   if (!visible) return null;
 

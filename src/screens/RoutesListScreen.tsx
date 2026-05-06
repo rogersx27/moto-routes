@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -20,7 +20,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoutesList'>;
 
 export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
   const [routes, setRoutes] = useState<Route[]>([]);
-  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+  const swipeableRefs = useRef<Map<string, React.RefObject<SwipeableMethods | null>>>(new Map());
+
+  const getItemRef = useCallback((id: string): React.RefObject<SwipeableMethods | null> => {
+    if (!swipeableRefs.current.has(id)) {
+      swipeableRefs.current.set(id, React.createRef<SwipeableMethods | null>());
+    }
+    return swipeableRefs.current.get(id)!;
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,12 +35,12 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
     }, [])
   );
 
-  const handleDelete = (id: string, name: string): void => {
+  const handleDelete = useCallback((id: string, name: string): void => {
     Alert.alert('Eliminar ruta', `¿Eliminar "${name}"?`, [
       {
         text: 'Cancelar',
         style: 'cancel',
-        onPress: () => swipeableRefs.current.get(id)?.close(),
+        onPress: () => swipeableRefs.current.get(id)?.current?.close(),
       },
       {
         text: 'Eliminar',
@@ -41,12 +48,13 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
         onPress: () => {
           RouteService.deleteRoute(id);
           setRoutes((prev) => prev.filter((r) => r.id !== id));
+          swipeableRefs.current.delete(id);
         },
       },
     ]);
-  };
+  }, []);
 
-  const renderRightActions = (id: string, name: string) => (
+  const renderRightActions = useCallback((id: string, name: string) => (
     <TouchableOpacity
       style={styles.deleteAction}
       onPress={() => handleDelete(id, name)}
@@ -54,9 +62,9 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
     >
       <Text style={styles.deleteActionText}>Eliminar</Text>
     </TouchableOpacity>
-  );
+  ), [handleDelete]);
 
-  const renderItem = ({ item }: { item: Route }) => {
+  const renderItem = useCallback(({ item }: { item: Route }) => {
     const km = RouteService.calculateDistance(item.path);
     const date = new Date(item.createdAt).toLocaleDateString('es-CO', {
       day: '2-digit',
@@ -65,11 +73,8 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
     });
 
     return (
-      <Swipeable
-        ref={(ref) => {
-          if (ref) swipeableRefs.current.set(item.id, ref);
-          else swipeableRefs.current.delete(item.id);
-        }}
+      <ReanimatedSwipeable
+        ref={getItemRef(item.id)}
         renderRightActions={() => renderRightActions(item.id, item.name)}
         overshootRight={false}
       >
@@ -84,11 +89,11 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <Text style={styles.routeDate}>{date}</Text>
         </TouchableOpacity>
-      </Swipeable>
+      </ReanimatedSwipeable>
     );
-  };
+  }, [navigation, renderRightActions, getItemRef]);
 
-  const emptyComponent = (
+  const emptyComponent = useMemo(() => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>🏍️</Text>
       <Text style={styles.emptyTitle}>Aún no tienes rutas</Text>
@@ -96,7 +101,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
         Toca el botón + para crear tu primera ruta
       </Text>
     </View>
-  );
+  ), []);
 
   return (
     <View style={styles.container}>
@@ -120,7 +125,7 @@ export const RoutesListScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  list: { padding: spacing.lg, paddingBottom: 80 },
+  list: { padding: spacing.lg, paddingBottom: 96 },
   listEmpty: { flex: 1 },
   card: {
     backgroundColor: colors.surface,
@@ -184,7 +189,7 @@ const styles = StyleSheet.create({
     bottom: spacing.xl,
     right: spacing.xl,
     backgroundColor: colors.primary,
-    borderRadius: 28,
+    borderRadius: radius.full,
     paddingHorizontal: spacing.xl,
     paddingVertical: 14,
     elevation: 4,

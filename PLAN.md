@@ -507,7 +507,7 @@ Marca cada tarea con `[x]` al completarla.
 ## Fase 5 — Discoverability y onboarding
 
 ### 5.1 Empty state en MapScreen con instrucciones
-- [ ] Cuando no hay ruta activa, mostrar texto orientador sobre el mapa
+- [x] Cuando no hay ruta activa, mostrar texto orientador sobre el mapa
 
 **Archivos a editar:** `src/screens/MapScreen.tsx`
 
@@ -526,7 +526,7 @@ Marca cada tarea con `[x]` al completarla.
 ---
 
 ### 5.2 Tooltips de primer uso en los modos
-- [ ] Mostrar un hint la primera vez que el usuario activa el modo "drawing"
+- [x] Mostrar un hint la primera vez que el usuario activa el modo "drawing"
 
 **Archivos a crear/editar:** `src/screens/MapScreen.tsx`
 
