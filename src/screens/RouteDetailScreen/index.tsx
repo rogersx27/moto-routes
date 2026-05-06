@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
@@ -11,11 +10,14 @@ import MapView from 'react-native-maps';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import type { RootStackParamList } from '../navigation/AppNavigator';
-import type { Route } from '../models';
-import { RouteService } from '../services';
-import { InputModal, ActionButton, RouteMap } from '../components';
-import { colors, typography, spacing, radius } from '../theme';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
+import type { Route } from '../../models';
+import { RouteService } from '../../services';
+import { InputModal, ActionButton, RouteMap } from '../../components';
+import { colors, typography, spacing } from '../../theme';
+import { RouteDetailHeader } from './RouteDetailHeader';
+import { CheckpointsList } from './CheckpointsList';
+import { NotesList } from './NotesList';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RouteDetail'>;
 
@@ -88,7 +90,6 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Map preview */}
       {region ? (
         <MapView
           style={styles.mapPreview}
@@ -106,54 +107,19 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
         </View>
       )}
 
-      {/* Header */}
-      <TouchableOpacity
-        style={styles.titleRow}
-        onPress={() => {
+      <RouteDetailHeader
+        name={route.name}
+        formattedDate={formattedDate}
+        km={km}
+        description={route.description}
+        onRenamePress={() => {
           setRenameInput(route.name);
           setRenameVisible(true);
         }}
-        accessibilityLabel="Renombrar ruta"
-      >
-        <Text style={styles.title}>{route.name}</Text>
-        <Text style={styles.editIcon}>✏️</Text>
-      </TouchableOpacity>
-      <Text style={styles.date}>{formattedDate}</Text>
-      {km > 0 && (
-        <Text style={styles.distance}>{km.toFixed(2)} km recorridos</Text>
-      )}
+      />
 
-      {route.description ? (
-        <Text style={styles.description}>{route.description}</Text>
-      ) : null}
-
-      {/* Checkpoints */}
-      {route.checkpoints.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>
-            Checkpoints ({route.checkpoints.length})
-          </Text>
-          {route.checkpoints.map((cp) => (
-            <View key={cp.id} style={styles.listItem}>
-              <Text style={styles.itemLabel}>📍 {cp.label}</Text>
-            </View>
-          ))}
-        </>
-      )}
-
-      {/* Notes */}
-      {route.notes.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>
-            Notas ({route.notes.length})
-          </Text>
-          {route.notes.map((note) => (
-            <View key={note.id} style={styles.listItem}>
-              <Text style={styles.itemLabel}>📝 {note.text}</Text>
-            </View>
-          ))}
-        </>
-      )}
+      <CheckpointsList checkpoints={route.checkpoints} />
+      <NotesList notes={route.notes} />
 
       {!hasAnnotations && (
         <Text style={styles.noAnnotations}>Sin checkpoints ni notas aún.</Text>
@@ -174,7 +140,6 @@ export const RouteDetailScreen: React.FC<Props> = ({ navigation, route: navParam
         style={{ marginTop: spacing.md }}
       />
 
-      {/* Rename modal */}
       <InputModal
         visible={renameVisible}
         title="Renombrar ruta"
@@ -195,7 +160,6 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 40 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   notFound: { color: colors.textMuted, fontSize: typography.size.md },
-
   mapPreview: { width: '100%', height: 220 },
   mapPlaceholder: {
     height: 120,
@@ -204,56 +168,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mapPlaceholderText: { color: colors.textMuted, fontSize: typography.size.base },
-
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.xl,
-  },
-  title: {
-    fontSize: typography.size.xxl,
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  editIcon: { fontSize: 18 },
-  date: {
-    fontSize: typography.size.sm,
-    color: '#888',
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.xl,
-  },
-  distance: {
-    fontSize: typography.size.sm,
-    color: colors.primary,
-    fontWeight: typography.weight.semibold,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.xl,
-  },
-  description: {
-    fontSize: typography.size.base,
-    color: '#444',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.bold,
-    color: '#333',
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-    paddingHorizontal: spacing.xl,
-  },
-  listItem: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    marginHorizontal: spacing.xl,
-  },
-  itemLabel: { fontSize: typography.size.base, color: colors.textPrimary },
   noAnnotations: {
     textAlign: 'center',
     marginTop: spacing.xl,
@@ -261,5 +175,4 @@ const styles = StyleSheet.create({
     fontSize: typography.size.base,
     paddingHorizontal: spacing.xl,
   },
-
 });
