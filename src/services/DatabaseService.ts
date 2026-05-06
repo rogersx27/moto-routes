@@ -1,44 +1,30 @@
 import * as SQLite from 'expo-sqlite';
 import type { Route, Checkpoint, Note } from '../models';
+import { DDL, MIGRATIONS, SCHEMA_VERSION } from '../db/schema';
 
 const DB_NAME = 'moto_routes.db';
 
-// Singleton database connection
 let db: SQLite.SQLiteDatabase | null = null;
+
+const applyMigrations = (database: SQLite.SQLiteDatabase): void => {
+  const row = database.getFirstSync<{ user_version: number }>('PRAGMA user_version');
+  const current = row?.user_version ?? 0;
+
+  for (let v = current + 1; v <= SCHEMA_VERSION; v++) {
+    const sql = MIGRATIONS[v];
+    if (sql) database.execSync(sql);
+  }
+
+  if (current < SCHEMA_VERSION) {
+    database.execSync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  }
+};
 
 const getDb = (): SQLite.SQLiteDatabase => {
   if (!db) {
     db = SQLite.openDatabaseSync(DB_NAME);
-    db.execSync(`
-      CREATE TABLE IF NOT EXISTS routes (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        path TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS checkpoints (
-        id TEXT PRIMARY KEY,
-        route_id TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        label TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS notes (
-        id TEXT PRIMARY KEY,
-        route_id TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        text TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
-      );
-    `);
+    db.execSync(DDL);
+    applyMigrations(db);
   }
   return db;
 };
