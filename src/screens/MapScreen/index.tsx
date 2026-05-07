@@ -147,22 +147,10 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
     setCurrentRoute((prev) => prev && RouteService.removeLastPathPoint(prev));
   }, []);
 
-  const handleToggleDrawing = useCallback(() => {
-    const next = mode === 'drawing' ? 'idle' : 'drawing';
+  const handleToggle = useCallback((targetMode: 'drawing' | 'checkpoint' | 'note') => {
+    const next = mode === targetMode ? 'idle' : targetMode;
     setMode(next);
-    if (next === 'drawing') triggerHint('drawing');
-  }, [mode, triggerHint]);
-
-  const handleToggleCheckpoint = useCallback(() => {
-    const next = mode === 'checkpoint' ? 'idle' : 'checkpoint';
-    setMode(next);
-    if (next === 'checkpoint') triggerHint('checkpoint');
-  }, [mode, triggerHint]);
-
-  const handleToggleNote = useCallback(() => {
-    const next = mode === 'note' ? 'idle' : 'note';
-    setMode(next);
-    if (next === 'note') triggerHint('note');
+    if (next === targetMode) triggerHint(targetMode);
   }, [mode, triggerHint]);
 
   const modalTitle =
@@ -194,9 +182,9 @@ export const MapScreen: React.FC<Props> = ({ navigation, route: navParams }) => 
         mode={mode}
         bottom={toolbarBottom}
         onNewRoute={handleNewRoute}
-        onToggleDrawing={handleToggleDrawing}
-        onToggleCheckpoint={handleToggleCheckpoint}
-        onToggleNote={handleToggleNote}
+        onToggleDrawing={() => handleToggle('drawing')}
+        onToggleCheckpoint={() => handleToggle('checkpoint')}
+        onToggleNote={() => handleToggle('note')}
         onStartTracking={handleStartTracking}
         onStopTracking={handleStopTracking}
         onUndo={handleUndo}
